@@ -45,19 +45,14 @@ namespace Jellyfin.Plugin.BtttrPosters
         {
             var images = new List<RemoteImageInfo>();
 
-            // Extract the IMDb Identifier from Jellyfin's metadata item links
-            string? imdbId = item.GetProviderId(MetadataProvider.Imdb);
-
             _logger.LogInformation("Processing Btttr Image Provider for item: {Name}", item.Name);
 
-            if (string.IsNullOrEmpty(imdbId))
-            {
-                _logger.LogWarning("Btttr Image Provider: IMDB ID not found for item: {Name}. Cannot fetch custom poster.", item.Name);
-                return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
-            }
+            // btttr.cc is IMDb-only, so IMDb is preferred. When the item only has a TMDb ID
+            // (common with TMDb-identified libraries), the self-hosted service resolves it.
+            string? imdbId = item.GetProviderId(MetadataProvider.Imdb);
+            string? tmdbId = item.GetProviderId(MetadataProvider.Tmdb);
 
-            // Ensure IMDb ID starts with "tt" (normal IMDb format, e.g., tt10919420)
-            if (!imdbId.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(imdbId) && !imdbId.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
             {
                 imdbId = "tt" + imdbId;
             }
@@ -69,16 +64,38 @@ namespace Jellyfin.Plugin.BtttrPosters
             string posterUrl;
             if (string.IsNullOrEmpty(serviceBase))
             {
-                // No self-hosted service configured -> original behaviour: fetch straight from btttr.cc.
+                // Direct btttr.cc mode needs an IMDb ID (no TMDb support upstream).
+                if (string.IsNullOrEmpty(imdbId))
+                {
+                    _logger.LogWarning("Btttr: no IMDb ID for {Name} and no service URL set; cannot fetch poster.", item.Name);
+                    return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
+                }
                 posterUrl = $"https://btttr.cc/poster/imdb/{layout}/{imdbId}.jpg";
                 _logger.LogInformation("Btttr direct mode (no service URL set). URL: {Url}", posterUrl);
             }
             else
             {
-                // Self-hosted service: it pulls a clean poster from btttr.cc and overlays the
-                // quality badges we compute here from the REAL local file.
-                var query = BuildQualityQuery(item, config!);
-                posterUrl = $"{serviceBase}/poster/{imdbId}.jpg{query}";
+                // Service mode: prefer IMDb, else hand the TMDb ID (+ type) to the service to resolve.
+                var queryParts = new List<string>();
+                string idSegment;
+                if (!string.IsNullOrEmpty(imdbId))
+                {
+                    idSegment = imdbId;
+                }
+                else if (!string.IsNullOrEmpty(tmdbId))
+                {
+                    idSegment = tmdbId;
+                    queryParts.Add(item is Series ? "tmdb=tv" : "tmdb=movie");
+                }
+                else
+                {
+                    _logger.LogWarning("Btttr: no IMDb or TMDb ID for {Name}; cannot build poster URL.", item.Name);
+                    return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
+                }
+
+                AddQualityParams(queryParts, item, config!);
+                var query = queryParts.Count > 0 ? "?" + string.Join("&", queryParts) : string.Empty;
+                posterUrl = $"{serviceBase}/poster/{idSegment}.jpg{query}";
                 _logger.LogInformation("Btttr service mode for {Name}. URL: {Url}", item.Name, posterUrl);
             }
 
@@ -102,9 +119,8 @@ namespace Jellyfin.Plugin.BtttrPosters
 
         // --- Quality detection -------------------------------------------------
 
-        private string BuildQualityQuery(BaseItem item, PluginConfiguration config)
+        private void AddQualityParams(List<string> parts, BaseItem item, PluginConfiguration config)
         {
-            var parts = new List<string>();
             var videoStream = GetPrimaryVideoStream(item);
 
             if (config.EnableQualityTags)
@@ -124,13 +140,6 @@ namespace Jellyfin.Plugin.BtttrPosters
                     parts.Add("hdr=" + hdr);
                 }
             }
-
-            _logger.LogInformation(
-                "Detected quality for {Name}: {Tags}",
-                item.Name,
-                parts.Count > 0 ? string.Join(", ", parts) : "(none)");
-
-            return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
         }
 
         private static string GetResolutionTag(MediaStream? videoStream)

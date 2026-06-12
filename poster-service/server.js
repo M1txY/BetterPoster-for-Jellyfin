@@ -15,8 +15,37 @@ const CLEAN_PREFIX = process.env.CLEAN_PREFIX || 'poster-n';
 const CACHE_DIR = process.env.CACHE_DIR || path.join(process.cwd(), 'cache');
 const UA = process.env.UPSTREAM_UA
   || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+// Optional: lets the service turn a TMDb id into an IMDb id (btttr.cc is IMDb-only).
+const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
 
 fssync.mkdirSync(CACHE_DIR, { recursive: true });
+
+// Resolve a TMDb id to an IMDb id via the TMDb API, cached in memory.
+const tmdbCache = new Map();
+async function resolveImdbFromTmdb(tmdbId, type) {
+  if (!TMDB_API_KEY) {
+    console.warn('[tmdb] TMDB_API_KEY not set — cannot resolve TMDb ids');
+    return null;
+  }
+  const key = `${type}:${tmdbId}`;
+  if (tmdbCache.has(key)) return tmdbCache.get(key);
+  try {
+    const url = `https://api.themoviedb.org/3/${type}/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`;
+    const r = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!r.ok) {
+      console.warn(`[tmdb] ${r.status} resolving ${key}`);
+      tmdbCache.set(key, null);
+      return null;
+    }
+    const data = await r.json();
+    const imdb = data && data.imdb_id ? String(data.imdb_id) : null;
+    tmdbCache.set(key, imdb);
+    return imdb;
+  } catch (e) {
+    console.error(`[tmdb] resolve failed for ${key}: ${e.message}`);
+    return null;
+  }
+}
 
 const app = express();
 app.disable('x-powered-by');
@@ -26,10 +55,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-app.get('/poster/:imdb.jpg', async (req, res) => {
-  const imdb = String(req.params.imdb || '');
-  if (!/^tt\d+$/i.test(imdb)) {
-    return res.status(400).send('Invalid IMDb id (expected ttXXXXXXX)');
+app.get('/poster/:id.jpg', async (req, res) => {
+  const rawId = String(req.params.id || '');
+  const tmdbType = String(req.query.tmdb || '').toLowerCase(); // 'movie' | 'tv' | ''
+
+  // Resolve the request id to an IMDb id (btttr.cc only understands IMDb).
+  let imdb;
+  if (/^tt\d+$/i.test(rawId)) {
+    imdb = rawId.toLowerCase();
+  } else if ((tmdbType === 'movie' || tmdbType === 'tv') && /^\d+$/.test(rawId)) {
+    imdb = await resolveImdbFromTmdb(rawId, tmdbType);
+    if (!imdb) {
+      return res.status(404).send('No IMDb mapping for this TMDb id');
+    }
+  } else {
+    return res.status(400).send('Invalid id (expected ttXXXXXXX, or a TMDb id with ?tmdb=movie|tv)');
   }
 
   const badges = badgesFromQuery(req.query);
@@ -77,4 +117,5 @@ app.listen(PORT, () => {
   console.log(`Better Poster service listening on :${PORT}`);
   console.log(`Clean source: ${BTTTR_BASE}/${CLEAN_PREFIX}/imdb/${BTTTR_LAYOUT}/{imdb}.jpg?tag=none`);
   console.log(`Cache dir: ${CACHE_DIR}`);
+  console.log(`TMDb resolution: ${TMDB_API_KEY ? 'enabled' : 'disabled (set TMDB_API_KEY)'}`);
 });

@@ -10,6 +10,9 @@ services:
       - BTTTR_BASE=https://btttr.cc
       - BTTTR_LAYOUT=poster-default
       - CLEAN_PREFIX=poster-n
+      # Set TMDB_API_KEY in a .env file next to this compose file (see .env.example)
+      # so the service can turn TMDb ids into IMDb ids. Never commit the real key.
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
     volumes:
       - ./cache:/app/cache
     restart: unless-stopped

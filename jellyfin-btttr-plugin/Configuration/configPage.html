@@ -81,7 +81,7 @@
                 var pluginUniqueId = 'b1ea6fb2-e42a-4632-841f-82ffba8307db';
                 var page = document.querySelector('#BtttrPostersConfigPage');
 
-                page.addEventListener('pageshow', function () {
+                function loadConfig() {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
                         page.querySelector('#PosterServiceUrl').value = config.PosterServiceUrl || '';
@@ -91,7 +91,11 @@
                         page.querySelector('#chkFallback').checked = config.FallbackToTmdbText !== false;
                         Dashboard.hideLoadingMsg();
                     });
-                });
+                }
+
+                // Jellyfin 10.9 fires 'viewshow' on the page element; load now as a fallback too.
+                page.addEventListener('viewshow', loadConfig);
+                loadConfig();
 
                 page.querySelector('#BtttrPostersConfigForm').addEventListener('submit', function (e) {
                     e.preventDefault();
