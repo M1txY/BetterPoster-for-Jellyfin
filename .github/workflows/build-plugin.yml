@@ -1,0 +1,63 @@
+name: Build & Release plugin
+
+on:
+  push:
+    tags:
+      - 'v*'            # a tag like v1.1.0 builds AND publishes a Release
+    branches:
+      - main            # pushes to main just build + upload an artifact
+  workflow_dispatch: {} # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build (Release)
+        run: dotnet build jellyfin-btttr-plugin/BtttrPosterPlugin.csproj -c Release --nologo
+
+      - name: Package plugin
+        id: package
+        run: |
+          mkdir -p dist
+          cp jellyfin-btttr-plugin/bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll dist/
+          cd dist
+          zip -j BtttrPosters.zip Jellyfin.Plugin.BtttrPosters.dll
+          CHECKSUM=$(md5sum BtttrPosters.zip | cut -d ' ' -f1)
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Plugin built ✅"
+            echo ""
+            echo "- **Artifact:** \`BtttrPosters.zip\` (also contains the raw \`.dll\`)"
+            echo "- **MD5 checksum:** \`$CHECKSUM\`  ← put this in manifest.json"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Downloadable from the Actions run page (Artifacts), no tag needed.
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BtttrPosters
+          path: dist/
+
+      # Only when you push a version tag (e.g. v1.1.0): publish a GitHub Release.
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/BtttrPosters.zip
+          body: |
+            Built automatically by CI.
+
+            **MD5 checksum:** `${{ steps.package.outputs.checksum }}`
+
+            **Install (manual):** unzip and drop `Jellyfin.Plugin.BtttrPosters.dll` into
+            `…/plugins/Btttr Posters/`, then restart Jellyfin.

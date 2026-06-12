@@ -69,15 +69,56 @@ curl http://localhost:8080/health          # {"ok":true}
 Then open **`http://YOUR-SERVER-IP:8080/`** in a browser for the preview UI. Full service docs
 (env vars, API, customizing badges) are in **[poster-service/README.md](poster-service/README.md)**.
 
-### 2. Build & install the plugin
+### 2. Install the plugin into Jellyfin
+
+There are two ways to get the plugin into Jellyfin.
+
+#### Option A — Manual install (works right now)
+
+**1. Get the plugin file (`Jellyfin.Plugin.BtttrPosters.dll`).** Either build it:
 
 ```bash
 cd jellyfin-btttr-plugin
 dotnet build -c Release
+# -> bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll
 ```
 
-Copy `bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll` into your Jellyfin
-`plugins/Btttr Posters/` folder, then **restart Jellyfin**.
+…or download it from the repo's **Releases** page (once a release is published — see Option B).
+
+**2. Drop the DLL into a `Btttr Posters` subfolder of your Jellyfin _plugins_ directory:**
+
+| Platform | Plugins directory |
+|---|---|
+| Linux (apt / native) | `/var/lib/jellyfin/plugins/` |
+| Docker (official / linuxserver) | `/config/plugins/` *(inside the container)* |
+| Windows | `%LOCALAPPDATA%\jellyfin\plugins\` |
+| macOS | `~/.local/share/jellyfin/plugins/` |
+
+The final path should look like:
+
+```
+…/plugins/Btttr Posters/Jellyfin.Plugin.BtttrPosters.dll
+```
+
+**3. Restart Jellyfin.** The plugin then shows up under **Dashboard → Plugins**.
+
+> Not sure where your data folder is? In Jellyfin go to **Dashboard → Advanced** — the
+> *Paths* section lists the data directory; `plugins` lives right next to it.
+
+#### Option B — From a plugin repository (one-click, needs a published release)
+
+If a GitHub **Release** is published and `manifest.json` points to it, you can install from inside
+Jellyfin without copying files:
+
+1. **Dashboard → Plugins → Repositories → ➕ (Add)**
+2. **Name:** `Btttr Posters` — **URL:** `https://raw.githubusercontent.com/M1txY/BetterPoster-for-Jellyfin/main/manifest.json`
+3. Open the **Catalog** tab → find **Btttr Posters** (Metadata category) → **Install** → restart.
+
+![Repository setup](https://raw.githubusercontent.com/M1txY/BetterPoster-for-Jellyfin/main/setup.JPG)
+
+> ⚠️ The bundled `manifest.json` still references the original author's v1.0.0 release, so this
+> route currently installs the **old** plugin (no badge features). Use **Option A** until a fork
+> release is published.
 
 ### 3. Configure the plugin
 
