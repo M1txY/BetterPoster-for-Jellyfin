@@ -80,7 +80,7 @@ There are two ways to get the plugin into Jellyfin.
 ```bash
 cd jellyfin-btttr-plugin
 dotnet build -c Release
-# -> bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll
+# -> bin/Release/net9.0/Jellyfin.Plugin.BtttrPosters.dll
 ```
 
 …or download it from the repo's **Releases** page (once a release is published — see Option B).

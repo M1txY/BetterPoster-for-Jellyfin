@@ -17,10 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
       - name: Build (Release)
         run: dotnet build jellyfin-btttr-plugin/BtttrPosterPlugin.csproj -c Release --nologo
@@ -29,7 +29,7 @@ jobs:
         id: package
         run: |
           mkdir -p dist
-          cp jellyfin-btttr-plugin/bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll dist/
+          cp jellyfin-btttr-plugin/bin/Release/net9.0/Jellyfin.Plugin.BtttrPosters.dll dist/
           cd dist
           zip -j BtttrPosters.zip Jellyfin.Plugin.BtttrPosters.dll
           CHECKSUM=$(md5sum BtttrPosters.zip | cut -d ' ' -f1)

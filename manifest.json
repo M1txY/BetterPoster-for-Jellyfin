@@ -10,8 +10,8 @@
     "versions": [
       {
         "version": "1.0.0.0",
-        "changelog": "Initial public release.",
-        "targetAbi": "10.9.0.0",
+        "changelog": "Real quality badges (4K/1080p/HDR/Dolby Vision) via self-hosted service; TMDb fallback. Built for Jellyfin 10.11.",
+        "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/TheAceOfficials/BetterPoster-for-Jellyfin/releases/download/v1.0.0/BtttrPosters_v1.0.0.zip",
         "checksum": "B5AC09390CB828317782C4F26BF3A7AF"
       }

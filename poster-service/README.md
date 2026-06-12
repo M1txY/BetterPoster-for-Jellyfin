@@ -81,7 +81,7 @@ inconnue, ex. certaines séries).
    cd jellyfin-btttr-plugin
    dotnet build -c Release
    ```
-   Copie `bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll` dans le dossier
+   Copie `bin/Release/net9.0/Jellyfin.Plugin.BtttrPosters.dll` dans le dossier
    `plugins/Btttr Posters/` de Jellyfin, puis redémarre le serveur.
 
 2. Dans **Tableau de bord → Plugins → Btttr Posters**, renseigne
