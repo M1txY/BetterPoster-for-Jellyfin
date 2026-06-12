@@ -1,57 +1,135 @@
-# Btttr Posters - Jellyfin Plugin
+# Btttr Posters — Real Quality Badges for Jellyfin
 
-![Cover Art](https://raw.githubusercontent.com/TheAceOfficials/BetterPoster-for-Jellyfin/main/cover.PNG)
+![Cover Art](https://raw.githubusercontent.com/M1txY/BetterPoster-for-Jellyfin/main/cover.PNG)
 
-Automatically fetches and applies high-quality custom posters with overlays from [btttr.cc](https://btttr.cc) for your Jellyfin media library. 
+A Jellyfin plugin **+** a small self-hosted service that puts clean, custom posters on your
+library **and overlays real quality badges** — `4K` / `1080p` / `720p` / `SD`, plus `HDR` and the
+official **Dolby Vision** logo — based on the **actual file you own**.
 
-This plugin uses the IMDb ID of your movies and TV shows to find matching posters on Btttr and sets them as the primary image in Jellyfin.
+> This is a fork of [TheAceOfficials/BetterPoster-for-Jellyfin](https://github.com/TheAceOfficials/BetterPoster-for-Jellyfin).
+> The original plugin fetches posters from [btttr.cc](https://btttr.cc) by IMDb ID. This fork adds
+> the self-hosted badge service and **per-file resolution detection** that btttr.cc can't do on its own.
 
-## Features
-- 🚀 **Automatic fetching:** Pulls custom posters directly from Btttr.cc.
-- 🎯 **IMDb ID matching:** Ensures accurate poster matching for your media.
-- 🖼️ **Primary Image Provider:** Integrates seamlessly as a metadata image provider in Jellyfin.
+---
 
-## Installation
+## Why a self-hosted service?
 
-You can easily install this plugin by adding the custom repository to your Jellyfin server.
+btttr.cc's own "quality tags" are generic — they come from btttr's database and are the same for
+everyone, regardless of whether *your* copy is 4K or 1080p. btttr has no way to know what's on your disk.
 
-### Step 1: Add the Repository
-1. Open your Jellyfin Web UI.
-2. Go to **Dashboard** > **Plugins** (under the Advanced section).
-3. Click on the **Repositories** tab.
-4. Click the **+** (Add) button.
-5. Enter the following details:
-   - **Repository Name:** Btttr Posters
-   - **Repository URL:** `https://raw.githubusercontent.com/TheAceOfficials/BetterPoster-for-Jellyfin/refs/heads/main/manifest.json`
-6. Click **Save**.
+Your Jellyfin plugin **does** know. So here:
 
-### Step 2: Install the Plugin
-1. Go back to the **Catalog** tab in the Plugins page.
-2. Scroll to find **Btttr Posters** under the *Metadata* category.
-3. Click on it and select **Install**.
-4. Confirm the installation.
+1. The **plugin** reads the real resolution / dynamic range of each file.
+2. It calls **your** service with that info.
+3. The **service** grabs a clean poster from btttr.cc and draws the matching badge on top.
 
-  ![Guide](https://raw.githubusercontent.com/TheAceOfficials/BetterPoster-for-Jellyfin/main/setup.JPG)
+The result is a badge that is actually correct for each file.
 
-### Step 3: Restart Jellyfin
-For the plugin to take effect, you must restart your Jellyfin server.
-- **Windows:** Right-click the Jellyfin tray icon and select "Restart", or restart the Jellyfin service from the Services app.
-- **Linux/Docker:** Restart the Docker container or the systemd service (`sudo systemctl restart jellyfin`).
-- **macOS:** Restart the Jellyfin application.
+```
+Jellyfin → plugin "Btttr Posters"  (detects 4K / 1080p / HDR / Dolby Vision of the real file)
+            │  GET http://your-server:8080/poster/tt10919420.jpg?quality=4k&hdr=dv
+            ▼
+        better-poster-service  (Node + sharp)
+            │  fetches the CLEAN poster:
+            │  GET https://btttr.cc/poster-n/imdb/poster-default/tt10919420.jpg?tag=none
+            ▼
+        overlays the badges → returns a JPEG → Jellyfin
+```
 
-## How to Configure & Use
+---
 
-Once installed and the server is restarted, you need to enable the plugin for your libraries so it can fetch the posters.
+## What you get
 
-1. Go to **Dashboard** > **Libraries**.
-2. Click on the three dots `...` on a library (e.g., Movies or TV Shows) and select **Manage Library**.
-3. Scroll down to the **Image fetchers** section.
-4. Check the box next to **Btttr Posters**.
-5. *(Highly Recommended)* Move it to the **top** of the list using the arrows so it takes priority over other image providers like TMDb or OMDB.
-6. Click **Save** at the bottom.
+- 🎯 **Real quality badges** — `4K`, `1080p`, `720p`, `SD` rendered from the actual video stream.
+- 🌈 **HDR & Dolby Vision** — adds an `HDR` tag or the official Dolby Vision logo when present.
+- 🖼️ **Clean source posters** — pulled from btttr.cc by IMDb ID, no genre/rating clutter.
+- 🧰 **Web preview UI** — a btttr.cc-style page (served at `/`) to see the badges and try options.
+- 🪶 **Self-contained** — badges are vector (SVG) + the bundled *Inter ExtraBold* font; no external assets.
+- 🔌 **Optional** — leave the service URL empty and the plugin behaves like the original (btttr.cc direct, no badge).
 
-Now, when you add new media or manually choose to **Refresh Metadata** (by selecting "Replace existing images"), Jellyfin will look for posters from Btttr.cc and apply them automatically!
+---
+
+## Setup
+
+There are **two pieces**: the service (a Docker container you host) and the Jellyfin plugin.
+
+### 1. Run the poster service
+
+```bash
+cd poster-service
+docker compose up -d --build
+```
+
+It listens on port **8080**. Check it:
+
+```bash
+curl http://localhost:8080/health          # {"ok":true}
+```
+
+Then open **`http://YOUR-SERVER-IP:8080/`** in a browser for the preview UI. Full service docs
+(env vars, API, customizing badges) are in **[poster-service/README.md](poster-service/README.md)**.
+
+### 2. Build & install the plugin
+
+```bash
+cd jellyfin-btttr-plugin
+dotnet build -c Release
+```
+
+Copy `bin/Release/net8.0/Jellyfin.Plugin.BtttrPosters.dll` into your Jellyfin
+`plugins/Btttr Posters/` folder, then **restart Jellyfin**.
+
+### 3. Configure the plugin
+
+In **Dashboard → Plugins → Btttr Posters**:
+
+| Setting | What to enter |
+|---|---|
+| **Self-hosted Poster Service URL** | `http://YOUR-SERVER-IP:8080` (base URL only) |
+| **Resolution badge** | on |
+| **HDR / Dolby Vision badge** | on (optional) |
+
+> Leave the URL **empty** to disable the service and fall back to plain btttr.cc posters.
+
+### 4. Enable it on your libraries
+
+1. **Dashboard → Libraries** → on a library, **⋯ → Manage Library**.
+2. Under **Image fetchers**, tick **Btttr Posters**.
+3. Move it to the **top** so it takes priority over TMDb/OMDb.
+4. **Save**, then **Refresh Metadata** with *"Replace existing images"*.
+
+---
+
+## How the badge is decided
+
+| What the plugin reads (per file) | Badge sent |
+|---|---|
+| Video width ≥ ~3000 px (or 2160p) | `4K` |
+| Video width ≥ ~1700 px (or 1080p) | `1080p` |
+| Video width ≥ ~1100 px (or 720p) | `720p` |
+| Smaller | `SD` |
+| Dynamic range = Dolby Vision | Dolby Vision logo |
+| Dynamic range = HDR10 / HLG | `HDR` |
+
+- **Movies:** detected directly from the file's video stream.
+- **TV Shows:** the series poster samples the first episode that has a video stream (series are
+  usually a uniform resolution). If nothing is found, the clean poster is returned without a badge.
+
+---
 
 ## Troubleshooting
-- **No poster applied?** Make sure your media has a valid IMDb ID in its metadata. The plugin relies entirely on the IMDb ID (`ttXXXXXXX`) to fetch the correct poster from Btttr.cc. You can check this by editing the metadata of your movie/show.
-- **Plugin settings empty?** This plugin works silently in the background as an Image Provider. The settings page might appear blank or unconfigurable, which is completely normal. Configuration is done on a per-library basis.
+
+- **No poster applied?** The media needs a valid IMDb ID (`ttXXXXXXX`) in its metadata — that's how
+  the correct poster is found. Check via *Edit Metadata*.
+- **Poster but no badge?** Make sure the **Service URL** is set in the plugin config, the service is
+  reachable from Jellyfin, and the item is a Movie/Series with a detectable video stream.
+- **Want different badge styling?** Colors, size, position and the resolution font are all in
+  [poster-service/render.js](poster-service/render.js) (or via the `RES_FONT` / `RES_WEIGHT` env vars).
+
+---
+
+## Credits
+
+- Original plugin: **[TheAceOfficials/BetterPoster-for-Jellyfin](https://github.com/TheAceOfficials/BetterPoster-for-Jellyfin)**.
+- Clean posters: **[btttr.cc](https://btttr.cc)**.
+- Resolution badge font: **[Inter](https://github.com/rsms/inter)** (SIL OFL).
