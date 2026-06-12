@@ -61,14 +61,14 @@
   .switch input:checked + .track{background:var(--gold)}
   .switch input:checked + .track .knob{transform:translateX(20px)}
 
-  .idbar{display:flex;gap:8px;margin-top:4px}
+  .idbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
   .idbar input{
-    flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    flex:1 1 auto;min-width:0;background:var(--panel2);border:1px solid var(--border);color:var(--text);
     border-radius:10px;padding:9px 11px;font-size:13px;outline:none
   }
   .idbar input:focus{border-color:var(--gold)}
   .idbar select{
-    background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    flex:1 1 100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);
     border-radius:10px;padding:9px 8px;font-size:12.5px;outline:none;cursor:pointer
   }
   .idbar button{
