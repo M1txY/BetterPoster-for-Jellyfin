@@ -67,10 +67,16 @@
     border-radius:10px;padding:9px 11px;font-size:13px;outline:none
   }
   .idbar input:focus{border-color:var(--gold)}
+  .idbar select{
+    background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:9px 8px;font-size:12.5px;outline:none;cursor:pointer
+  }
   .idbar button{
     background:var(--gold);color:#1a1300;border:0;border-radius:10px;padding:0 14px;
     font-weight:700;cursor:pointer
   }
+  .hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45}
+  .hint code{color:var(--cyan)}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
   .card{position:relative;border-radius:12px;overflow:hidden;background:var(--panel2);
@@ -139,11 +145,18 @@
       </div>
 
       <div class="grp">
-        <h3>Ajouter un poster (IMDb ID)</h3>
+        <h3>Ajouter un poster</h3>
         <div class="idbar">
+          <select id="idType" title="Type d'identifiant">
+            <option value="imdb">IMDb</option>
+            <option value="movie">TMDb · Film</option>
+            <option value="tv">TMDb · Série</option>
+          </select>
           <input id="idInput" placeholder="tt1375666" />
           <button id="idAdd">+</button>
         </div>
+        <div class="hint">IMDb : <code>tt1375666</code> — TMDb : juste le numéro (ex. <code>27205</code>).
+          Le TMDb nécessite <code>TMDB_API_KEY</code> configuré sur le service.</div>
       </div>
     </div>
 
@@ -170,7 +183,12 @@
 <script>
 (function(){
   var state = { res:'4k', hdr:'',
-    ids:['tt10919420','tt1375666','tt0468569','tt4154796','tt0816692','tt0903747'] };
+    ids:[
+      {id:'tt10919420',tmdb:''}, {id:'tt1375666',tmdb:''}, {id:'tt0468569',tmdb:''},
+      {id:'tt4154796',tmdb:''}, {id:'tt0816692',tmdb:''}, {id:'tt0903747',tmdb:''}
+    ] };
+
+  function keyOf(it){ return it.tmdb + ':' + it.id; }
 
   function query(){
     var p=[];
@@ -179,26 +197,32 @@
     return p.length ? '?'+p.join('&') : '';
   }
 
-  function posterUrl(id){ return '/poster/'+id+'.jpg'+query(); }
+  function posterUrl(it){
+    var q=query();
+    if(it.tmdb){ q = q ? q+'&tmdb='+it.tmdb : '?tmdb='+it.tmdb; }
+    return '/poster/'+it.id+'.jpg'+q;
+  }
 
   function renderGrid(){
     var grid=document.getElementById('grid');
     grid.innerHTML='';
-    state.ids.forEach(function(id){
+    state.ids.forEach(function(it){
+      var k=keyOf(it);
       var card=document.createElement('div'); card.className='card';
       var sh=document.createElement('div'); sh.className='shimmer';
-      var err=document.createElement('div'); err.className='err'; err.textContent='Poster introuvable sur btttr.cc pour '+id;
+      var err=document.createElement('div'); err.className='err';
+      err.textContent='Poster introuvable pour '+it.id+(it.tmdb?' (tmdb '+it.tmdb+')':'');
       var rm=document.createElement('button'); rm.className='rm'; rm.textContent='×';
-      rm.onclick=function(){ state.ids=state.ids.filter(function(x){return x!==id}); renderGrid(); };
+      rm.onclick=function(){ state.ids=state.ids.filter(function(x){return keyOf(x)!==k}); renderGrid(); };
       var img=document.createElement('img');
-      img.alt=id;
+      img.alt=it.id;
       img.onload=function(){ card.classList.add('loaded'); img.classList.add('ready'); };
       img.onerror=function(){ card.classList.add('error'); };
-      img.src=posterUrl(id);
+      img.src=posterUrl(it);
       card.appendChild(sh); card.appendChild(err); card.appendChild(rm); card.appendChild(img);
       grid.appendChild(card);
     });
-    document.getElementById('urlOut').textContent = location.origin + '/poster/{imdb_id}.jpg' + query();
+    document.getElementById('urlOut').textContent = location.origin + '/poster/{id}.jpg' + query();
   }
 
   function bindSeg(segId, key){
@@ -225,10 +249,27 @@
   bindSeg('segRes','res');
   bindSeg('segHdr','hdr');
 
+  document.getElementById('idType').addEventListener('change', function () {
+    document.getElementById('idInput').placeholder = this.value === 'imdb' ? 'tt1375666' : '27205';
+  });
+
   document.getElementById('idAdd').onclick=function(){
-    var v=document.getElementById('idInput').value.trim().toLowerCase();
-    if(!/^tt\d+$/.test(v)){ v = v.replace(/[^0-9]/g,''); if(v) v='tt'+v; }
-    if(/^tt\d+$/.test(v) && state.ids.indexOf(v)===-1){ state.ids.unshift(v); document.getElementById('idInput').value=''; renderGrid(); }
+    var type=document.getElementById('idType').value; // imdb | movie | tv
+    var raw=document.getElementById('idInput').value.trim();
+    var item=null;
+    if(type==='imdb'){
+      var v=raw.toLowerCase();
+      if(!/^tt\d+$/.test(v)){ v=v.replace(/[^0-9]/g,''); if(v) v='tt'+v; }
+      if(/^tt\d+$/.test(v)) item={id:v,tmdb:''};
+    } else {
+      var n=raw.replace(/[^0-9]/g,'');
+      if(n) item={id:n,tmdb:type};
+    }
+    if(item && !state.ids.some(function(x){return keyOf(x)===keyOf(item)})){
+      state.ids.unshift(item);
+      document.getElementById('idInput').value='';
+      renderGrid();
+    }
   };
   document.getElementById('idInput').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('idAdd').click(); });
 
