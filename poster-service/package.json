@@ -1,0 +1,18 @@
+{
+  "name": "better-poster-service",
+  "version": "1.0.0",
+  "description": "Self-hosted poster-badge service: pulls a clean poster from btttr.cc and overlays real quality tags (4K / 1080p / HDR / DV / Atmos) sent by the Jellyfin plugin.",
+  "type": "module",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "sharp": "^0.33.5"
+  }
+}

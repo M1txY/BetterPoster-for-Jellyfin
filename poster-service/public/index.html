@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Better Posters — Preview</title>
+<style>
+  :root{
+    --bg:#0a0a0b; --panel:#141416; --panel2:#1b1b1f; --border:#2a2a2e;
+    --text:#ededed; --muted:#8a8a90; --gold:#FFD24A; --cyan:#3FE0D0;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 600px at 80% -10%, #1a1408 0%, transparent 60%),
+               radial-gradient(900px 500px at 0% 0%, #0d1416 0%, transparent 55%), var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+  }
+  a{color:var(--gold)}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 22px 70px}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  .logo{
+    width:42px;height:42px;border-radius:11px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--gold),#b98908);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a1300;font-size:20px;
+    box-shadow:0 6px 20px rgba(255,210,74,.25)
+  }
+  h1{font-size:24px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;margin:2px 0 26px}
+  .sub b{color:var(--text)}
+
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start}
+  @media(max-width:840px){.layout{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+  .controls{position:sticky;top:22px}
+  .grp{margin-bottom:22px}
+  .grp:last-child{margin-bottom:0}
+  .grp h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+
+  .seg{display:flex;flex-wrap:wrap;gap:8px}
+  .seg button{
+    flex:1 1 auto;min-width:54px;cursor:pointer;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text);padding:9px 6px;border-radius:10px;
+    font-size:13px;font-weight:600;transition:.15s
+  }
+  .seg button:hover{border-color:#3a3a40}
+  .seg button.on{border-color:var(--gold);color:var(--gold);background:rgba(255,210,74,.08)}
+  .seg button.on.cyan{border-color:var(--cyan);color:var(--cyan);background:rgba(63,224,208,.08)}
+
+  .row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+  .row .lab{font-size:14px}
+  .row .desc{font-size:12px;color:var(--muted)}
+  .switch{position:relative;width:46px;height:26px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .track{position:absolute;inset:0;background:#37373d;border-radius:20px;transition:.2s;cursor:pointer}
+  .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s}
+  .switch input:checked + .track{background:var(--gold)}
+  .switch input:checked + .track .knob{transform:translateX(20px)}
+
+  .idbar{display:flex;gap:8px;margin-top:4px}
+  .idbar input{
+    flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:9px 11px;font-size:13px;outline:none
+  }
+  .idbar input:focus{border-color:var(--gold)}
+  .idbar button{
+    background:var(--gold);color:#1a1300;border:0;border-radius:10px;padding:0 14px;
+    font-weight:700;cursor:pointer
+  }
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
+  .card{position:relative;border-radius:12px;overflow:hidden;background:var(--panel2);
+        border:1px solid var(--border);aspect-ratio:2/3}
+  .card img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s}
+  .card img.ready{opacity:1}
+  .card .shimmer{position:absolute;inset:0;background:linear-gradient(100deg,#1b1b1f 30%,#26262b 50%,#1b1b1f 70%);
+        background-size:200% 100%;animation:sh 1.2s infinite}
+  .card.loaded .shimmer{display:none}
+  .card .err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+        color:var(--muted);font-size:12px;text-align:center;padding:14px}
+  .card.error .err{display:flex}
+  .card.error .shimmer{display:none}
+  .card .rm{position:absolute;top:8px;left:8px;z-index:3;width:24px;height:24px;border-radius:50%;
+        background:rgba(0,0,0,.6);color:#fff;border:0;cursor:pointer;font-size:15px;line-height:1;
+        opacity:0;transition:.15s}
+  .card:hover .rm{opacity:1}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .urlbox{margin-top:26px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+  .urlbox h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+  .urlfield{display:flex;gap:8px}
+  .urlfield code{
+    flex:1;background:#000;border:1px solid var(--border);border-radius:10px;padding:11px 13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:var(--cyan);
+    overflow:auto;white-space:nowrap
+  }
+  .urlfield button{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+        border-radius:10px;padding:0 16px;font-weight:600;cursor:pointer}
+  .urlfield button:hover{border-color:var(--gold)}
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5}
+  .note b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">B</div>
+    <div>
+      <h1>Better Posters</h1>
+    </div>
+  </header>
+  <div class="sub">Aperçu des badges de qualité. En vrai, le plugin Jellyfin détecte <b>automatiquement</b> la qualité de chaque fichier — ici tu règles juste l'aperçu.</div>
+
+  <div class="layout">
+    <!-- Controls -->
+    <div class="panel controls">
+      <div class="grp">
+        <h3>Résolution</h3>
+        <div class="seg" id="segRes">
+          <button data-v="4k">4K</button>
+          <button data-v="1080p">1080p</button>
+          <button data-v="720p">720p</button>
+          <button data-v="sd">SD</button>
+          <button data-v="">Aucun</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <h3>Plage dynamique</h3>
+        <div class="seg" id="segHdr">
+          <button data-v="">Aucun</button>
+          <button data-v="hdr" class="cyanopt">HDR</button>
+          <button data-v="dv" class="cyanopt">Dolby Vision</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <h3>Ajouter un poster (IMDb ID)</h3>
+        <div class="idbar">
+          <input id="idInput" placeholder="tt1375666" />
+          <button id="idAdd">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Previews -->
+    <div>
+      <div class="grid" id="grid"></div>
+
+      <div class="urlbox">
+        <h3>URL générée (mode aperçu)</h3>
+        <div class="urlfield">
+          <code id="urlOut">—</code>
+          <button id="copyBtn">Copier</button>
+        </div>
+        <div class="note">
+          Dans Jellyfin, mets simplement <b>l'URL de base du service</b>
+          (ex. <code style="color:var(--cyan)">http://ton-serveur:8080</code>) dans la config du plugin.
+          Le plugin ajoute lui-même <code style="color:var(--cyan)">?quality=…&hdr=…</code> selon chaque fichier.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var state = { res:'4k', hdr:'',
+    ids:['tt10919420','tt1375666','tt0468569','tt4154796','tt0816692','tt0903747'] };
+
+  function query(){
+    var p=[];
+    if(state.res) p.push('quality='+state.res);
+    if(state.hdr) p.push('hdr='+state.hdr);
+    return p.length ? '?'+p.join('&') : '';
+  }
+
+  function posterUrl(id){ return '/poster/'+id+'.jpg'+query(); }
+
+  function renderGrid(){
+    var grid=document.getElementById('grid');
+    grid.innerHTML='';
+    state.ids.forEach(function(id){
+      var card=document.createElement('div'); card.className='card';
+      var sh=document.createElement('div'); sh.className='shimmer';
+      var err=document.createElement('div'); err.className='err'; err.textContent='Poster introuvable sur btttr.cc pour '+id;
+      var rm=document.createElement('button'); rm.className='rm'; rm.textContent='×';
+      rm.onclick=function(){ state.ids=state.ids.filter(function(x){return x!==id}); renderGrid(); };
+      var img=document.createElement('img');
+      img.alt=id;
+      img.onload=function(){ card.classList.add('loaded'); img.classList.add('ready'); };
+      img.onerror=function(){ card.classList.add('error'); };
+      img.src=posterUrl(id);
+      card.appendChild(sh); card.appendChild(err); card.appendChild(rm); card.appendChild(img);
+      grid.appendChild(card);
+    });
+    document.getElementById('urlOut').textContent = location.origin + '/poster/{imdb_id}.jpg' + query();
+  }
+
+  function bindSeg(segId, key){
+    var seg=document.getElementById(segId);
+    seg.querySelectorAll('button').forEach(function(b){
+      b.onclick=function(){
+        state[key]=b.getAttribute('data-v');
+        seg.querySelectorAll('button').forEach(function(x){
+          x.classList.toggle('on', x===b);
+          x.classList.toggle('cyan', x===b && x.classList.contains('cyanopt'));
+        });
+        renderGrid();
+      };
+    });
+    // set initial 'on'
+    seg.querySelectorAll('button').forEach(function(x){
+      if(x.getAttribute('data-v')===state[key]){
+        x.classList.add('on');
+        if(x.classList.contains('cyanopt')) x.classList.add('cyan');
+      }
+    });
+  }
+
+  bindSeg('segRes','res');
+  bindSeg('segHdr','hdr');
+
+  document.getElementById('idAdd').onclick=function(){
+    var v=document.getElementById('idInput').value.trim().toLowerCase();
+    if(!/^tt\d+$/.test(v)){ v = v.replace(/[^0-9]/g,''); if(v) v='tt'+v; }
+    if(/^tt\d+$/.test(v) && state.ids.indexOf(v)===-1){ state.ids.unshift(v); document.getElementById('idInput').value=''; renderGrid(); }
+  };
+  document.getElementById('idInput').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('idAdd').click(); });
+
+  document.getElementById('copyBtn').onclick=function(){
+    var t=document.getElementById('urlOut').textContent;
+    navigator.clipboard.writeText(t).then(function(){
+      var b=document.getElementById('copyBtn'); var o=b.textContent; b.textContent='Copié ✓';
+      setTimeout(function(){ b.textContent=o; },1200);
+    });
+  };
+
+  renderGrid();
+})();
+</script>
+</body>
+</html>

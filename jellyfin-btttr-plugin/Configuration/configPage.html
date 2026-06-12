@@ -5,23 +5,57 @@
     <title>Btttr Posters Configuration</title>
 </head>
 <body>
-    <div id="BtttrPostersConfigPage" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-input,emby-select">
-        <div class="content-primary">
-            <form id="BtttrPostersConfigForm">
-                <div class="sectionTitleContainer flex align-items-center justify-content-between">
-                    <h2 class="sectionTitle">Btttr Posters Configuration</h2>
-                </div>
+    <div id="BtttrPostersConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+         data-require="emby-button,emby-input,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="BtttrPostersConfigForm">
+                    <div class="sectionTitleContainer flex align-items-center justify-content-between">
+                        <h2 class="sectionTitle">Btttr Posters Configuration</h2>
+                    </div>
 
-                <div class="verticalFormContainer">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PosterServiceUrl">Self-hosted Poster Service URL</label>
+                        <input is="emby-input" type="text" id="PosterServiceUrl" name="PosterServiceUrl"
+                               placeholder="http://192.168.1.50:8080" />
+                        <div class="fieldDescription">
+                            Base URL of your Better Poster service (the Node container). When set, posters are routed
+                            through it so it can overlay <strong>real</strong> quality badges based on your local files.
+                            Leave empty to fetch directly from btttr.cc (no quality badge).
+                        </div>
+                    </div>
+
                     <div class="selectContainer">
-                        <label for="selectLayout">Default Poster Layout Badge Style</label>
+                        <label for="selectLayout">Direct-mode Layout (only used when no service URL is set)</label>
                         <select is="emby-select" id="selectLayout" name="LayoutStyle" class="emby-select">
                             <option value="poster-default">Standard Default (Trending Pill)</option>
                             <option value="poster-no-badge">No Top Badge (Only Bottom Description)</option>
                             <option value="poster-rating-only">Rating Only / Empty Top</option>
                         </select>
                         <div class="fieldDescription">
-                            Select the default theme structure format to pull from btttr.cc endpoints.
+                            Theme structure pulled from btttr.cc when running without the self-hosted service.
+                        </div>
+                    </div>
+
+                    <h3 class="sectionTitle">Quality Badges (service mode)</h3>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkQuality" name="EnableQualityTags" />
+                            <span>Resolution badge (4K / 1080p / 720p / SD)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Detected from the real video stream of your file.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkHdr" name="EnableHdrTags" />
+                            <span>HDR / Dolby Vision badge</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Adds an HDR or DV badge when the file's dynamic range reports it.
                         </div>
                     </div>
 
@@ -38,9 +72,44 @@
                     <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                         <span>Save Configuration</span>
                     </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
+
+        <script type="text/javascript">
+            (function () {
+                var pluginUniqueId = 'b1ea6fb2-e42a-4632-841f-82ffba8307db';
+                var page = document.querySelector('#BtttrPostersConfigPage');
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+                        page.querySelector('#PosterServiceUrl').value = config.PosterServiceUrl || '';
+                        page.querySelector('#selectLayout').value = config.LayoutStyle || 'poster-default';
+                        page.querySelector('#chkQuality').checked = config.EnableQualityTags !== false;
+                        page.querySelector('#chkHdr').checked = config.EnableHdrTags !== false;
+                        page.querySelector('#chkFallback').checked = config.FallbackToTmdbText !== false;
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+                page.querySelector('#BtttrPostersConfigForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+                        config.PosterServiceUrl = page.querySelector('#PosterServiceUrl').value.trim();
+                        config.LayoutStyle = page.querySelector('#selectLayout').value;
+                        config.EnableQualityTags = page.querySelector('#chkQuality').checked;
+                        config.EnableHdrTags = page.querySelector('#chkHdr').checked;
+                        config.FallbackToTmdbText = page.querySelector('#chkFallback').checked;
+                        ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    return false;
+                });
+            })();
+        </script>
     </div>
 </body>
 </html>

@@ -1,0 +1,15 @@
+services:
+  poster-service:
+    build: .
+    image: better-poster-service:latest
+    container_name: better-poster-service
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - BTTTR_BASE=https://btttr.cc
+      - BTTTR_LAYOUT=poster-default
+      - CLEAN_PREFIX=poster-n
+    volumes:
+      - ./cache:/app/cache
+    restart: unless-stopped
