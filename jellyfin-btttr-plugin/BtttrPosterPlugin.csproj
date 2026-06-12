@@ -14,4 +14,10 @@
     <PackageReference Include="Jellyfin.Model" Version="10.9.0" />
   </ItemGroup>
 
+  <!-- Embed the config page so Jellyfin can serve it (otherwise the page is blank). -->
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
 </Project>
